@@ -1,0 +1,875 @@
+<title>我的生活島</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700&family=Zen+Maru+Gothic:wght@700&display=swap">
+<style>
+/* Layout concept: full-bleed 3D scene, floating glass panels at top and bottom, detail card docks right on wide screens and above the toolbar on phones. */
+:root {
+  --bg: #dff0ee;
+  --fg: #10303a;
+  --muted: #4d6a72;
+  --panel: rgba(247, 252, 251, 0.88);
+  --panel-solid: #f4fbfa;
+  --line: rgba(16, 48, 58, 0.16);
+  --accent: #d9481f;
+  --accent-fg: #ffffff;
+  --good: #1b8a58;
+  --focus: #0a6f8f;
+  --font-display: "Zen Maru Gothic", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1f27;
+    --fg: #e4f2f1;
+    --muted: #93b0b5;
+    --panel: rgba(14, 36, 45, 0.88);
+    --panel-solid: #0f2630;
+    --line: rgba(228, 242, 241, 0.18);
+    --accent: #ff8a5c;
+    --accent-fg: #1b0c06;
+    --good: #4fcf94;
+    --focus: #6cd2f0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c1f27;
+  --fg: #e4f2f1;
+  --muted: #93b0b5;
+  --panel: rgba(14, 36, 45, 0.88);
+  --panel-solid: #0f2630;
+  --line: rgba(228, 242, 241, 0.18);
+  --accent: #ff8a5c;
+  --accent-fg: #1b0c06;
+  --good: #4fcf94;
+  --focus: #6cd2f0;
+  color-scheme: dark;
+}
+html { box-sizing: border-box; height: 100%; }
+*, *::before, *::after { box-sizing: inherit; }
+body { height: 100%; background: var(--bg); color: var(--fg); font: 500 14px/1.5 var(--font-body); overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.app { position: relative; height: 100%; min-height: 440px; overflow: hidden; }
+#stage { position: absolute; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.label-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.nogl { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+
+.hud {
+  position: absolute; left: 0; right: 0; z-index: 2; display: flex; gap: 10px; pointer-events: none;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.hud > * { pointer-events: auto; min-width: 0; }
+.hud-top { top: 12px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.hud-bottom { bottom: 12px; flex-direction: column; align-items: stretch; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+
+.brand { padding: 10px 14px; }
+.brand h1 { margin: 0; font: 700 22px/1.15 var(--font-display); letter-spacing: 0.02em; }
+.brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.brand .status { color: var(--fg); min-height: 18px; }
+.search { padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; flex: 0 1 260px; }
+.search input { width: 100%; border: 0; background: transparent; padding: 4px 2px; font-size: 14px; }
+.search input::placeholder { color: var(--muted); }
+.qmsg { font-size: 12px; color: var(--muted); min-height: 18px; }
+
+.dock { display: flex; flex-direction: column; gap: 8px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-weight: 700; font-size: 13px; }
+.chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--accent)); }
+.chip small { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.chip[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.chip[aria-pressed="true"] small { color: inherit; opacity: 0.75; }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 14px; }
+.timebox { display: flex; align-items: center; gap: 10px; flex: 1 1 200px; min-width: 0; }
+.timebox label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.timebox output { display: inline-block; min-width: 3.2em; color: var(--fg); font-weight: 700; font-variant-numeric: tabular-nums; }
+.timebox input { flex: 1; min-width: 0; accent-color: var(--accent); }
+.checks { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.checks label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+.checks input { accent-color: var(--accent); width: 16px; height: 16px; }
+.btn { border: 1px solid var(--line); background: transparent; border-radius: 10px; padding: 6px 12px; font-weight: 700; font-size: 13px; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
+
+.addform { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; }
+.addform input[type="text"], .addform select { flex: 1 1 140px; min-width: 0; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-solid); }
+.addform .msg { flex-basis: 100%; font-size: 12px; color: var(--muted); min-height: 18px; margin: 0; }
+
+.card { padding: 14px; max-height: 46vh; overflow-y: auto; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); }
+.pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--accent)); }
+.x { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); background: transparent; line-height: 1; font-size: 18px; }
+.card h2 { margin: 8px 0 2px; font: 700 20px/1.25 var(--font-display); text-wrap: balance; }
+.card .note { margin: 0 0 4px; color: var(--muted); }
+.card .when { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+.card .actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.card .btn.done { background: var(--good); color: #fff; border-color: transparent; }
+.card h3 { margin: 12px 0 6px; font-size: 12px; color: var(--muted); letter-spacing: 0.06em; }
+.rels { display: flex; flex-direction: column; gap: 6px; }
+.rel { display: flex; justify-content: space-between; gap: 10px; text-align: left; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: transparent; }
+.rel span { color: var(--muted); font-size: 12px; }
+.rel b { font-weight: 700; }
+.rel.is-done b { text-decoration: line-through; opacity: 0.7; }
+
+.tag, .tip { display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--panel-solid); border: 1px solid var(--line); color: var(--fg); font: 700 12px var(--font-body); white-space: nowrap; }
+.tag { pointer-events: auto; cursor: pointer; }
+.tag:hover { border-color: var(--fg); }
+.tag i { width: 9px; height: 9px; border-radius: 50%; }
+.tag .cnt { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.tip { border-color: var(--accent); }
+.app.no-tags .tag { display: none; }
+
+@media (min-width: 820px) {
+  .hud-bottom { flex-direction: row-reverse; justify-content: space-between; align-items: flex-end; }
+  .dock { flex: 1 1 auto; max-width: 720px; }
+  .card { width: 320px; flex: 0 0 320px; max-height: 60vh; }
+}
+@media (max-width: 520px) {
+  .search { flex: 1 1 100%; }
+}
+</style>
+
+<div class="app" id="app">
+  <div id="stage" role="img" aria-label="六角形小島拼成的 3D 生活地圖"></div>
+
+  <div class="hud hud-top">
+    <div class="panel brand">
+      <h1>我的生活島</h1>
+      <p>拖曳旋轉，點小屋看細節與打勾（範例資料）</p>
+      <p class="status" id="status" aria-live="polite"></p>
+    </div>
+    <div class="panel search">
+      <label class="sr" for="q">搜尋瑣事</label>
+      <input id="q" type="search" placeholder="搜尋，例如 繳費、運動" autocomplete="off">
+      <span class="qmsg" id="qmsg" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <div class="hud hud-bottom">
+    <section id="card" class="panel card" hidden aria-live="polite"></section>
+    <div class="dock">
+      <div class="chips" id="chips" role="group" aria-label="跳到某座島"></div>
+      <div class="panel toolbar">
+        <div class="timebox">
+          <label for="time">時間</label>
+          <output id="clock" for="time">12:00</output>
+          <input id="time" type="range" min="0" max="1439" step="1" value="720">
+        </div>
+        <div class="checks">
+          <label><input type="checkbox" id="auto" checked>日夜自動</label>
+          <label><input type="checkbox" id="showLinks" checked>協作線</label>
+          <label><input type="checkbox" id="showTags" checked>名牌</label>
+        </div>
+        <button type="button" class="btn" id="addToggle" aria-expanded="false" aria-controls="addForm">＋ 新增瑣事</button>
+      </div>
+      <form id="addForm" class="panel addform" hidden>
+        <label class="sr" for="newText">瑣事名稱</label>
+        <input type="text" id="newText" maxlength="12" placeholder="例如 擦窗戶" autocomplete="off">
+        <label class="sr" for="newIsland">放在哪座島</label>
+        <select id="newIsland"></select>
+        <button type="submit" class="btn primary">放到島上</button>
+        <p class="msg" id="addMsg" aria-live="polite"></p>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS2DRenderer.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 資料：想換成自己的內容，改這一塊就好 ---------- */
+  var DATA = {
+    islands: [
+      { id: 'hub', name: '日常基地', color: '#f2b134', grass: '#8fd36a', items: [
+        { id: 'h1', t: '晨間例行', n: '起床、刷牙、整理床鋪', w: '07:00' },
+        { id: 'h2', t: '午休十分鐘', n: '離開螢幕，走一小段路', w: '12:30' },
+        { id: 'h3', t: '晚間回顧', n: '寫下今天完成的三件事', w: '22:00' }
+      ]},
+      { id: 'home', name: '家務島', color: '#e4573d', grass: '#86cf6c', items: [
+        { id: 'a1', t: '洗衣服', n: '深色與淺色分開洗', w: '週三' },
+        { id: 'a2', t: '倒垃圾', n: '回收日記得拆紙箱', w: '週二、週五' },
+        { id: 'a3', t: '澆植物', n: '陽台兩盆先澆', w: '週日' },
+        { id: 'a4', t: '換床單', n: '兩週換一次', w: '週六' }
+      ]},
+      { id: 'food', name: '飲食島', color: '#7a5bd6', grass: '#9bd36a', items: [
+        { id: 'f1', t: '買菜', n: '先看冰箱還剩什麼', w: '週六' },
+        { id: 'f2', t: '備餐', n: '一次煮兩天的量', w: '週日' },
+        { id: 'f3', t: '補水', n: '水壺放在桌上', w: '全天' }
+      ]},
+      { id: 'health', name: '健康島', color: '#1fa3a3', grass: '#78c98a', items: [
+        { id: 'k1', t: '運動三十分鐘', n: '快走或重訓都算', w: '18:30' },
+        { id: 'k2', t: '睡滿七小時', n: '十一點前關螢幕', w: '23:00' },
+        { id: 'k3', t: '預約看牙', n: '半年檢查一次', w: '本月' },
+        { id: 'k4', t: '伸展肩頸', n: '每小時起身一次', w: '全天' }
+      ]},
+      { id: 'work', name: '工作島', color: '#3a6fe0', grass: '#8ed08a', items: [
+        { id: 'w1', t: '回信', n: '先處理需要回覆的', w: '09:00' },
+        { id: 'w2', t: '寫週報', n: '五點前送出', w: '週五' },
+        { id: 'w3', t: '整理待辦', n: '只留三件重點', w: '09:30' },
+        { id: 'w4', t: '預約會議室', n: '下週的會議先訂好', w: '週四' }
+      ]},
+      { id: 'money', name: '財務島', color: '#c94a8e', grass: '#a0d46a', items: [
+        { id: 'm1', t: '繳電費', n: '收到帳單後三天內', w: '每兩個月' },
+        { id: 'm2', t: '記帳', n: '每天只花一分鐘', w: '21:30' },
+        { id: 'm3', t: '整理收據', n: '拍照後丟掉紙本', w: '月底' }
+      ]},
+      { id: 'social', name: '人際島', color: '#ef8a2b', grass: '#7fcf7a', items: [
+        { id: 's1', t: '回訊息', n: '把拖著的三則回掉', w: '20:00' },
+        { id: 's2', t: '打給家人', n: '週末固定聊一下', w: '週日' },
+        { id: 's3', t: '朋友聚餐', n: '先約好日期', w: '本月' }
+      ]}
+    ],
+    links: [
+      ['f1', 'f2', '買完菜就能備餐'],
+      ['k1', 'k2', '運動後睡得更好'],
+      ['m1', 'm2', '繳費後順手記帳'],
+      ['w3', 'w2', '週報前先清待辦'],
+      ['h1', 'f3', '起床先喝一杯水'],
+      ['h3', 'm2', '睡前一起記帳'],
+      ['h2', 's1', '午休順便回訊息'],
+      ['s2', 'a3', '講電話時澆花']
+    ],
+    defaultDone: ['h1', 'a2', 'f3', 'w3']
+  };
+
+  /* ---------- 小工具 ---------- */
+  var $ = function (s) { return document.querySelector(s); };
+  function el(tag, props) {
+    var e = document.createElement(tag);
+    if (props) for (var k in props) {
+      if (k === 'class') e.className = props[k];
+      else if (k === 'text') e.textContent = props[k];
+      else if (k.indexOf('on') === 0) e.addEventListener(k.slice(2), props[k]);
+      else e.setAttribute(k, props[k]);
+    }
+    for (var i = 2; i < arguments.length; i++) {
+      var c = arguments[i];
+      if (c == null) continue;
+      e.append(c.nodeType ? c : document.createTextNode(c));
+    }
+    return e;
+  }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function mulberry(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; var t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  var stage = $('#stage');
+  var appEl = $('#app');
+  if (!window.THREE || !THREE.OrbitControls || !THREE.CSS2DRenderer) {
+    stage.append(el('div', { class: 'nogl', text: '3D 元件沒有載入成功，請重新整理頁面。' }));
+    return;
+  }
+
+  /* ---------- 狀態與儲存 ---------- */
+  var KEY = 'life-island-v1';
+  var saved = { done: null, custom: [] };
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) {
+      var p = JSON.parse(raw);
+      if (p && typeof p === 'object') {
+        saved.done = (p.done && typeof p.done === 'object') ? p.done : null;
+        saved.custom = Array.isArray(p.custom) ? p.custom : [];
+      }
+    }
+  } catch (e) {}
+  if (!saved.done) { saved.done = {}; DATA.defaultDone.forEach(function (id) { saved.done[id] = true; }); }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} }
+
+  var islands = DATA.islands;
+  var MAX_ITEMS = 6;
+  saved.custom = saved.custom.filter(function (c) { return c && typeof c.id === 'string' && typeof c.t === 'string'; });
+  saved.custom.forEach(function (c) {
+    var isl = islands.filter(function (i) { return i.id === c.island; })[0];
+    if (isl && isl.items.length < MAX_ITEMS) isl.items.push({ id: c.id, t: c.t.slice(0, 12), n: '自己加的瑣事', w: '', custom: true });
+  });
+
+  /* ---------- 版面：六角座標 ---------- */
+  var SIZE = 6, TOP_R = SIZE * 0.88, GROUND = 0.8;
+  var ring = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  islands.forEach(function (isl, i) {
+    var q = i === 0 ? 0 : ring[i - 1][0], r = i === 0 ? 0 : ring[i - 1][1];
+    isl.x = SIZE * Math.sqrt(3) * (q + r / 2);
+    isl.z = SIZE * 1.5 * r;
+  });
+  var SLOT_SETS = { 1: [0], 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4], 6: [0, 1, 2, 3, 4, 5] };
+
+  /* ---------- 場景 ---------- */
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+  } catch (e) {
+    stage.append(el('div', { class: 'nogl', text: '這台裝置無法顯示 3D 場景。' }));
+    return;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  stage.appendChild(renderer.domElement);
+  var labelRenderer = new THREE.CSS2DRenderer();
+  labelRenderer.domElement.className = 'label-layer';
+  stage.appendChild(labelRenderer.domElement);
+
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x9bd8ef);
+  scene.fog = new THREE.Fog(0x9bd8ef, 80, 210);
+  var camera = new THREE.PerspectiveCamera(40, 1, 0.5, 600);
+  var DEFAULT_DIR = new THREE.Vector3(0, 0.66, 0.75).normalize();
+
+  var hemi = new THREE.HemisphereLight(0xe8f6ff, 0x8a9a78, 0.9);
+  scene.add(hemi);
+  var sun = new THREE.DirectionalLight(0xfff4dc, 1.2);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  var sc = sun.shadow.camera; sc.left = -44; sc.right = 44; sc.top = 44; sc.bottom = -44; sc.near = 1; sc.far = 160;
+  sun.shadow.bias = -0.0006;
+  scene.add(sun); scene.add(sun.target);
+
+  function std(color) { return new THREE.MeshStandardMaterial({ color: color, roughness: 0.88, metalness: 0, flatShading: true }); }
+  var M = {
+    dirt: std(0x8b6b4a), trunk: std(0x6b4a2f), leaf: std(0x3f9a5a), leaf2: std(0x58b36a),
+    plank: std(0xb88a56), plaza: std(0xeadfc3), pole: std(0xd9d2c3),
+    flag: new THREE.MeshBasicMaterial({ color: 0x35c37a }),
+    win: new THREE.MeshBasicMaterial({ color: 0x9fb4c0 }),
+    foam: new THREE.MeshBasicMaterial({ color: 0xbff0ee, transparent: true, opacity: 0.55 }),
+    cloud: new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.92 })
+  };
+  var water = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshStandardMaterial({ color: 0x2a95b8, roughness: 0.35, metalness: 0.1 }));
+  water.rotation.x = -Math.PI / 2; water.position.y = -0.1; water.receiveShadow = true;
+  scene.add(water);
+
+  /* 星空與雲 */
+  var starGeo = new THREE.BufferGeometry(), starPos = [], rs = mulberry(7);
+  for (var s = 0; s < 260; s++) {
+    var th = rs() * Math.PI * 2, ph = Math.acos(rs() * 0.9 + 0.05), R = 170;
+    starPos.push(R * Math.sin(ph) * Math.cos(th), R * Math.cos(ph), R * Math.sin(ph) * Math.sin(th));
+  }
+  starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+  var stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.8, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+  scene.add(stars);
+  var clouds = [], rc = mulberry(21);
+  for (var c = 0; c < 6; c++) {
+    var cg = new THREE.Group();
+    for (var k = 0; k < 3; k++) {
+      var sp = new THREE.Mesh(new THREE.SphereGeometry(2.4 - k * 0.3, 10, 8), M.cloud);
+      sp.scale.set(1.6, 0.7, 1); sp.position.set((k - 1) * 2.6, k === 1 ? 0.5 : 0, 0);
+      cg.add(sp);
+    }
+    cg.position.set(-90 + rc() * 180, 24 + rc() * 8, -70 + rc() * 100);
+    cg.userData.speed = 0.5 + rc() * 0.6;
+    scene.add(cg); clouds.push(cg);
+  }
+
+  /* ---------- 島嶼 ---------- */
+  var tagObjs = [], itemGroups = [], buildings = {}, shadowOn = function (m) { m.castShadow = true; m.receiveShadow = true; return m; };
+
+  function makeTree(scale) {
+    var g = new THREE.Group();
+    var t = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.5, 6), M.trunk); t.position.y = 0.25; g.add(shadowOn(t));
+    var a = new THREE.Mesh(new THREE.ConeGeometry(0.62, 1.1, 7), M.leaf); a.position.y = 0.95; g.add(shadowOn(a));
+    var b = new THREE.Mesh(new THREE.ConeGeometry(0.46, 0.9, 7), M.leaf2); b.position.y = 1.55; g.add(shadowOn(b));
+    g.scale.setScalar(scale);
+    return g;
+  }
+
+  function makeIsland(isl, idx) {
+    var g = new THREE.Group(); g.position.set(isl.x, 0, isl.z);
+    var foam = new THREE.Mesh(new THREE.CylinderGeometry(SIZE * 0.96, SIZE * 0.96, 0.05, 6), M.foam); foam.position.y = -0.07; g.add(foam);
+    var base = new THREE.Mesh(new THREE.CylinderGeometry(TOP_R * 0.98, TOP_R * 0.78, 1.7, 6), M.dirt); base.position.y = -0.35; base.receiveShadow = true; g.add(base);
+    isl.grassMat = std(isl.grass);
+    var grass = new THREE.Mesh(new THREE.CylinderGeometry(TOP_R, TOP_R, 0.3, 6), isl.grassMat); grass.position.y = 0.65; grass.receiveShadow = true; g.add(grass);
+    var plaza = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.08, 24), M.plaza); plaza.position.y = GROUND + 0.04; plaza.receiveShadow = true; g.add(plaza);
+
+    var rnd = mulberry(100 + idx * 13);
+    for (var k = 0; k < 6; k++) {
+      var a = k * Math.PI / 3, tr = makeTree(0.75 + rnd() * 0.4);
+      tr.position.set(Math.sin(a) * 4.55, GROUND, Math.cos(a) * 4.55);
+      tr.rotation.y = rnd() * 6; g.add(tr);
+    }
+    var fl = [0xffffff, 0xffd166, 0xff8fab, 0xb794f4];
+    for (var f = 0; f < 10; f++) {
+      var fa = rnd() * Math.PI * 2, fr = 1.8 + rnd() * 2.2;
+      var m = new THREE.Mesh(new THREE.OctahedronGeometry(0.11), new THREE.MeshBasicMaterial({ color: fl[f % 4] }));
+      m.position.set(Math.sin(fa) * fr, GROUND + 0.1, Math.cos(fa) * fr); g.add(m);
+    }
+
+    var itemsGroup = new THREE.Group(); g.add(itemsGroup);
+    isl.itemsGroup = itemsGroup; itemGroups.push(itemsGroup);
+
+    var tagEl = el('div', { class: 'tag' }, el('i', { style: 'background:' + isl.color }), el('b', { text: isl.name }), el('span', { class: 'cnt' }));
+    tagEl.addEventListener('click', function () { selectIsland(isl.id); });
+    var tagObj = new THREE.CSS2DObject(tagEl); tagObj.position.set(0, 5.4, 0); g.add(tagObj);
+    isl.tagEl = tagEl;
+
+    scene.add(g);
+    return g;
+  }
+
+  var islandGroups = islands.map(makeIsland);
+
+  /* 橋 */
+  var bridgeGeo = new THREE.BoxGeometry(1.3, 0.12, 1);
+  for (var i = 0; i < islands.length; i++) for (var j = i + 1; j < islands.length; j++) {
+    var dx = islands[j].x - islands[i].x, dz = islands[j].z - islands[i].z, d = Math.sqrt(dx * dx + dz * dz);
+    if (d < SIZE * Math.sqrt(3) * 1.01) {
+      var len = d - 2 * TOP_R * 0.866 + 0.9;
+      var br = new THREE.Mesh(bridgeGeo, M.plank); br.scale.z = len;
+      br.position.set((islands[i].x + islands[j].x) / 2, GROUND - 0.06, (islands[i].z + islands[j].z) / 2);
+      br.rotation.y = Math.atan2(dx, dz); br.receiveShadow = true; br.castShadow = true; scene.add(br);
+    }
+  }
+
+  /* ---------- 小屋 ---------- */
+  function box(w, h, d, mat, x, y, z) { var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); return shadowOn(m); }
+
+  function buildHouse(item, isl, idx, slotPos) {
+    var grp = new THREE.Group();
+    var col = new THREE.Color(isl.color), bodyCol = col.clone().lerp(new THREE.Color(0xffffff), 0.65);
+    var bm = std(bodyCol), rm = std(col);
+    [bm, rm].forEach(function (m) { m.emissive = new THREE.Color(0xffb33a); m.emissiveIntensity = 0; });
+    var v = idx % 3, top, depth;
+    if (v === 0) {
+      grp.add(box(1.5, 1.2, 1.5, bm, 0, 0.6, 0));
+      var r0 = new THREE.Mesh(new THREE.ConeGeometry(1.25, 0.95, 4), rm); r0.rotation.y = Math.PI / 4; r0.position.y = 1.2 + 0.475; grp.add(shadowOn(r0));
+      top = 2.15; depth = 0.75;
+    } else if (v === 1) {
+      grp.add(box(1.25, 1.9, 1.25, bm, 0, 0.95, 0));
+      grp.add(box(1.5, 0.2, 1.5, rm, 0, 2.0, 0));
+      grp.add(box(0.25, 0.5, 0.25, rm, 0.4, 2.35, -0.3));
+      top = 2.6; depth = 0.625;
+    } else {
+      grp.add(box(1.4, 1.1, 1.4, bm, 0, 0.55, 0));
+      var r2 = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1.4, 4), rm); r2.rotation.y = Math.PI / 4; r2.position.y = 1.1 + 0.7; grp.add(shadowOn(r2));
+      top = 2.5; depth = 0.7;
+    }
+    var wy = v === 1 ? 1.3 : 0.7;
+    var w1 = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.34, 0.04), M.win); w1.position.set(-0.3, wy, depth + 0.01);
+    var w2 = w1.clone(); w2.position.x = 0.3;
+    grp.add(w1, w2, box(0.3, 0.5, 0.04, rm, 0, 0.25, depth + 0.01));
+
+    var flag = new THREE.Group();
+    var pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.9, 6), M.pole); pole.position.y = 0.45; flag.add(pole);
+    var cloth = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.28, 0.03), M.flag); cloth.position.set(0.27, 0.74, 0); flag.add(cloth);
+    flag.position.y = top - 0.1; grp.add(flag);
+
+    grp.position.set(slotPos.x, GROUND, slotPos.z);
+    grp.rotation.y = Math.atan2(-slotPos.x, -slotPos.z);
+    grp.traverse(function (o) { o.userData.bid = item.id; });
+    return { group: grp, bodyMat: bm, roofMat: rm, flag: flag, top: top };
+  }
+
+  function layoutIsland(isl) {
+    var g = isl.itemsGroup;
+    isl.items.forEach(function (it) { delete buildings[it.id]; });
+    while (g.children.length) {
+      var ch = g.children[0]; g.remove(ch);
+      ch.traverse(function (o) {
+        if (o.isMesh) { o.geometry.dispose(); if (o.material !== M.win && o.material !== M.flag && o.material !== M.pole) o.material.dispose(); }
+      });
+    }
+    var n = Math.min(isl.items.length, MAX_ITEMS), slots = SLOT_SETS[n] || [];
+    isl.items.forEach(function (it, idx) {
+      var a = slots[idx] * Math.PI / 3;
+      var pos = { x: Math.sin(a) * 2.8, z: Math.cos(a) * 2.8 };
+      var h = buildHouse(it, isl, idx, pos);
+      g.add(h.group);
+      buildings[it.id] = {
+        item: it, isl: isl, group: h.group, bodyMat: h.bodyMat, roofMat: h.roofMat, flag: h.flag,
+        top: new THREE.Vector3(isl.x + pos.x, GROUND + h.top + 0.3, isl.z + pos.z),
+        base: new THREE.Vector3(isl.x + pos.x, GROUND, isl.z + pos.z),
+        scale: 1, hl: 0, pop: 0
+      };
+      h.flag.visible = !!saved.done[it.id];
+    });
+  }
+  islands.forEach(layoutIsland);
+
+  /* ---------- 協作線 ---------- */
+  var linkGroup = new THREE.Group(); scene.add(linkGroup);
+  var links = [];
+  function buildLinks() {
+    while (linkGroup.children.length) {
+      var ch = linkGroup.children[0]; linkGroup.remove(ch);
+      if (ch.geometry) ch.geometry.dispose();
+      if (ch.material) ch.material.dispose();
+    }
+    links = [];
+    DATA.links.forEach(function (l) {
+      var a = buildings[l[0]], b = buildings[l[1]];
+      if (!a || !b) return;
+      var p0 = a.top, p1 = b.top, mid = p0.clone().add(p1).multiplyScalar(0.5);
+      mid.y += 3.2 + p0.distanceTo(p1) * 0.16;
+      var curve = new THREE.QuadraticBezierCurve3(p0, mid, p1);
+      var mat = new THREE.MeshBasicMaterial({ color: 0xffb02e, transparent: true, opacity: 0.7 });
+      var tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 36, 0.07, 6, false), mat);
+      var dot = new THREE.Mesh(new THREE.SphereGeometry(0.2, 10, 8), new THREE.MeshBasicMaterial({ color: 0xfff1c9 }));
+      linkGroup.add(tube, dot);
+      links.push({ a: l[0], b: l[1], label: l[2], curve: curve, mat: mat, dot: dot, t: Math.random() });
+    });
+    updateLinkLook();
+  }
+
+  /* ---------- 小人偶 ---------- */
+  var walker = new THREE.Group();
+  (function () {
+    var vest = std(0xf08a24), skin = std(0xf3c9a0), dark = std(0x3a3340);
+    var body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.55, 8), vest); body.position.y = 0.55; walker.add(shadowOn(body));
+    var head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 10), skin); head.position.y = 1.0; walker.add(shadowOn(head));
+    var hair = new THREE.Mesh(new THREE.SphereGeometry(0.215, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), dark); hair.position.y = 1.03; walker.add(hair);
+    var legL = box(0.12, 0.3, 0.14, dark, -0.1, 0.15, 0), legR = box(0.12, 0.3, 0.14, dark, 0.1, 0.15, 0); walker.add(legL, legR);
+    var arm = new THREE.Group(); arm.position.set(0.26, 0.78, 0);
+    var armMesh = box(0.09, 0.4, 0.09, vest, 0, -0.18, 0); arm.add(armMesh); walker.add(arm);
+    walker.userData = { arm: arm, legL: legL, legR: legR };
+  })();
+  scene.add(walker);
+  var route = [0, 1, 2, 3, 4, 5, 6, 0];
+  var wk = { seg: 0, pos: new THREE.Vector3(islands[0].x, GROUND + 0.08, islands[0].z), pause: 1.2, moving: false };
+  walker.position.copy(wk.pos);
+  var statusEl = $('#status'), lastStatus = '';
+  function setStatus(msg) { if (msg !== lastStatus) { lastStatus = msg; statusEl.textContent = msg; } }
+  setStatus('小人偶在' + islands[0].name + '休息');
+
+  function updateWalker(dt, t) {
+    var u = walker.userData;
+    if (reduce) { u.arm.rotation.z = -2.2; return; }
+    var from = islands[route[wk.seg]], to = islands[route[wk.seg + 1]];
+    if (wk.pause > 0) {
+      wk.pause -= dt;
+      u.arm.rotation.z = -2.3 + Math.sin(t * 9) * 0.35;
+      u.legL.rotation.x = u.legR.rotation.x = 0;
+      walker.position.y = GROUND + 0.08;
+      if (wk.pause <= 0) { wk.moving = true; setStatus('小人偶正走向' + to.name); }
+      return;
+    }
+    var dx = to.x - wk.pos.x, dz = to.z - wk.pos.z, d = Math.sqrt(dx * dx + dz * dz), step = 3.4 * dt;
+    if (d <= step) {
+      wk.pos.x = to.x; wk.pos.z = to.z; wk.seg++;
+      if (wk.seg >= route.length - 1) wk.seg = 0;
+      wk.pause = 2.4; setStatus('小人偶在' + to.name + '休息');
+    } else {
+      wk.pos.x += dx / d * step; wk.pos.z += dz / d * step;
+      walker.rotation.y = Math.atan2(dx, dz);
+    }
+    var sw = Math.sin(t * 10);
+    u.arm.rotation.z = sw * 0.5; u.legL.rotation.x = sw * 0.6; u.legR.rotation.x = -sw * 0.6;
+    walker.position.set(wk.pos.x, GROUND + 0.08 + Math.abs(sw) * 0.06, wk.pos.z);
+  }
+
+  /* ---------- 日夜 ---------- */
+  function K(h, sky, hs, hg, hi, sc, si, w, n) {
+    return { h: h, sky: new THREE.Color(sky), hs: new THREE.Color(hs), hg: new THREE.Color(hg), hi: hi, sc: new THREE.Color(sc), si: si, w: new THREE.Color(w), n: n };
+  }
+  var KEYS = [
+    K(0, '#0a1230', '#27346b', '#101830', 0.55, '#7f93e0', 0.3, '#123a52', 1),
+    K(5, '#0a1230', '#27346b', '#101830', 0.55, '#7f93e0', 0.3, '#123a52', 1),
+    K(6.5, '#f0a07a', '#ffd7b0', '#6a5a60', 0.75, '#ffb87a', 0.85, '#3c88a6', 0.4),
+    K(9, '#9bd8ef', '#e8f6ff', '#8a9a78', 0.9, '#fff4dc', 1.2, '#2a95b8', 0),
+    K(13, '#86cdea', '#f2fbff', '#8a9a78', 0.95, '#fffbee', 1.35, '#2a95b8', 0),
+    K(17, '#9fcde0', '#eaf6ff', '#8a9a78', 0.9, '#ffe2b0', 1.1, '#2a8fae', 0),
+    K(18.8, '#f27b52', '#ffc09a', '#5c4a58', 0.7, '#ff9a5c', 0.8, '#3a7a98', 0.45),
+    K(20.5, '#2a2a5e', '#5a5a9a', '#1a1c3a', 0.6, '#8a8ae0', 0.4, '#1a4560', 0.85),
+    K(22, '#0a1230', '#27346b', '#101830', 0.55, '#7f93e0', 0.3, '#123a52', 1),
+    K(24, '#0a1230', '#27346b', '#101830', 0.55, '#7f93e0', 0.3, '#123a52', 1)
+  ];
+  var WARM = new THREE.Color(0xffd27a), COOL = new THREE.Color(0x9fb4c0), FOAM_DAY = new THREE.Color(0xbff0ee), FOAM_NIGHT = new THREE.Color(0x3d6a7a);
+  var CLOUD_DAY = new THREE.Color(0xffffff), CLOUD_NIGHT = new THREE.Color(0x56608a);
+  function applyTime(h) {
+    var i = 0; while (i < KEYS.length - 2 && h >= KEYS[i + 1].h) i++;
+    var a = KEYS[i], b = KEYS[i + 1], t = (h - a.h) / (b.h - a.h); t = t * t * (3 - 2 * t);
+    scene.background.copy(a.sky).lerp(b.sky, t); scene.fog.color.copy(scene.background);
+    hemi.color.copy(a.hs).lerp(b.hs, t); hemi.groundColor.copy(a.hg).lerp(b.hg, t); hemi.intensity = a.hi + (b.hi - a.hi) * t;
+    sun.color.copy(a.sc).lerp(b.sc, t); sun.intensity = a.si + (b.si - a.si) * t;
+    water.material.color.copy(a.w).lerp(b.w, t);
+    var n = a.n + (b.n - a.n) * t;
+    M.win.color.copy(COOL).lerp(WARM, n);
+    M.foam.color.copy(FOAM_DAY).lerp(FOAM_NIGHT, n);
+    M.cloud.color.copy(CLOUD_DAY).lerp(CLOUD_NIGHT, n);
+    stars.material.opacity = n * 0.9;
+    var ang = (h - 6) / 24 * Math.PI * 2;
+    sun.position.set(Math.cos(ang) * 55, 16 + Math.abs(Math.sin(ang)) * 42, 26);
+    sun.target.position.set(0, 0, 0);
+  }
+
+  /* ---------- 相機 ---------- */
+  var controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true; controls.dampingFactor = 0.08;
+  controls.minDistance = 12; controls.maxDistance = 85;
+  controls.minPolarAngle = 0.25; controls.maxPolarAngle = Math.PI * 0.47;
+  controls.rotateSpeed = 0.7;
+  var fly = null;
+  controls.addEventListener('start', function () { fly = null; });
+
+  function narrow() { return camera.aspect < 1; }
+  function flyTo(cx, cy, cz, dist, dir) {
+    var d = dir ? dir.clone() : camera.position.clone().sub(controls.target);
+    if (!dir) d.y = Math.max(d.y, d.length() * 0.5);
+    d.normalize();
+    var tgt = new THREE.Vector3(cx, cy, cz);
+    fly = { t: 0, fromP: camera.position.clone(), fromT: controls.target.clone(), toT: tgt, toP: tgt.clone().add(d.multiplyScalar(dist)) };
+  }
+  function updateFly(dt) {
+    if (!fly) return;
+    fly.t = Math.min(1, fly.t + dt / (reduce ? 0.01 : 0.9));
+    var e = fly.t < 0.5 ? 4 * fly.t * fly.t * fly.t : 1 - Math.pow(-2 * fly.t + 2, 3) / 2;
+    camera.position.lerpVectors(fly.fromP, fly.toP, e);
+    controls.target.lerpVectors(fly.fromT, fly.toT, e);
+    if (fly.t >= 1) fly = null;
+  }
+  function overview() { flyTo(0, 0, 0, narrow() ? 80 : 60, DEFAULT_DIR); }
+
+  function resize() {
+    var w = stage.clientWidth || 1, h = stage.clientHeight || 1;
+    renderer.setSize(w, h); labelRenderer.setSize(w, h);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  resize();
+  camera.position.copy(DEFAULT_DIR).multiplyScalar(narrow() ? 80 : 60);
+  controls.target.set(0, 0, 0); controls.update();
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(stage); else window.addEventListener('resize', resize);
+
+  /* ---------- 選取、搜尋、卡片 ---------- */
+  var selItem = null, selIsland = null, query = '', matched = {};
+  var ringMesh = new THREE.Mesh(new THREE.RingGeometry(1.15, 1.35, 40), new THREE.MeshBasicMaterial({ color: 0xffb02e, side: THREE.DoubleSide, transparent: true, opacity: 0.9 }));
+  ringMesh.rotation.x = -Math.PI / 2; ringMesh.visible = false; scene.add(ringMesh);
+  var tipEl = el('div', { class: 'tip' }), tipObj = new THREE.CSS2DObject(tipEl); tipObj.visible = false; scene.add(tipObj);
+
+  var card = $('#card'), chipsEl = $('#chips');
+  function islandOf(id) { return islands.filter(function (i) { return i.id === id; })[0]; }
+  function progress(isl) { var d = 0; isl.items.forEach(function (it) { if (saved.done[it.id]) d++; }); return d + '/' + isl.items.length; }
+
+  function updateCounts() {
+    islands.forEach(function (isl) { isl.tagEl.querySelector('.cnt').textContent = progress(isl); });
+    var chips = chipsEl.querySelectorAll('.chip');
+    chips.forEach(function (c) {
+      var id = c.getAttribute('data-id');
+      if (id === 'all') { c.setAttribute('aria-pressed', String(!selIsland && !selItem)); return; }
+      c.querySelector('small').textContent = progress(islandOf(id));
+      c.setAttribute('aria-pressed', String(selIsland === id));
+    });
+  }
+  function buildChips() {
+    chipsEl.replaceChildren();
+    chipsEl.append(el('button', { type: 'button', class: 'chip', 'data-id': 'all', onclick: function () { clearSel(); overview(); } }, '全景'));
+    islands.forEach(function (isl) {
+      chipsEl.append(el('button', { type: 'button', class: 'chip', 'data-id': isl.id, style: '--c:' + isl.color, onclick: function () { selectIsland(isl.id); } }, el('i'), isl.name, el('small')));
+    });
+  }
+  buildChips();
+
+  function updateLinkLook() {
+    links.forEach(function (l) {
+      var on = selItem && (l.a === selItem || l.b === selItem);
+      l.mat.opacity = selItem ? (on ? 1 : 0.14) : 0.7;
+      l.dot.visible = !selItem || on;
+    });
+  }
+
+  function renderCard() {
+    if (!selItem && !selIsland) { card.hidden = true; card.replaceChildren(); return; }
+    card.hidden = false;
+    var kids = [];
+    if (selItem) {
+      var b = buildings[selItem]; if (!b) { card.hidden = true; return; }
+      var it = b.item, done = !!saved.done[it.id];
+      kids.push(el('div', { class: 'card-head' }, el('span', { class: 'pill', style: '--c:' + b.isl.color, text: b.isl.name }), el('button', { type: 'button', class: 'x', 'aria-label': '關閉', onclick: function () { clearSel(); }, text: '×' })));
+      kids.push(el('h2', { text: it.t }), el('p', { class: 'note', text: it.n }));
+      if (it.w) kids.push(el('p', { class: 'when', text: '建議時段　' + it.w }));
+      var acts = el('div', { class: 'actions' }, el('button', { type: 'button', class: 'btn ' + (done ? 'done' : 'primary'), onclick: function () { toggleDone(it.id); }, text: done ? '已完成，再點一下取消' : '標記完成' }));
+      if (it.custom) acts.append(el('button', { type: 'button', class: 'btn', onclick: function () { removeItem(it.id); }, text: '移除這項' }));
+      kids.push(acts);
+      var rel = links.filter(function (l) { return l.a === it.id || l.b === it.id; });
+      if (rel.length) {
+        kids.push(el('h3', { text: '一起做更順' }));
+        var list = el('div', { class: 'rels' });
+        rel.forEach(function (l) {
+          var oid = l.a === it.id ? l.b : l.a, ob = buildings[oid];
+          list.append(el('button', { type: 'button', class: 'rel' + (saved.done[oid] ? ' is-done' : ''), onclick: function () { selectItem(oid); } }, el('span', { text: l.label }), el('b', { text: ob.item.t })));
+        });
+        kids.push(list);
+      }
+    } else {
+      var isl = islandOf(selIsland);
+      kids.push(el('div', { class: 'card-head' }, el('span', { class: 'pill', style: '--c:' + isl.color, text: '島嶼' }), el('button', { type: 'button', class: 'x', 'aria-label': '關閉', onclick: function () { clearSel(); }, text: '×' })));
+      kids.push(el('h2', { text: isl.name }), el('p', { class: 'note', text: '已完成 ' + progress(isl) + ' 件' }));
+      var il = el('div', { class: 'rels' });
+      isl.items.forEach(function (it) {
+        il.append(el('button', { type: 'button', class: 'rel' + (saved.done[it.id] ? ' is-done' : ''), onclick: function () { selectItem(it.id); } }, el('span', { text: it.w || '　' }), el('b', { text: it.t })));
+      });
+      kids.push(il);
+    }
+    card.replaceChildren.apply(card, kids);
+  }
+
+  function refresh() { updateCounts(); updateLinkLook(); renderCard(); }
+
+  function selectItem(id) {
+    var b = buildings[id]; if (!b) return;
+    selItem = id; selIsland = b.isl.id;
+    ringMesh.position.set(b.base.x, GROUND + 0.05, b.base.z); ringMesh.visible = true;
+    flyTo(b.base.x, GROUND + 1, b.base.z, narrow() ? 20 : 15);
+    refresh();
+  }
+  function selectIsland(id) {
+    var isl = islandOf(id); if (!isl) return;
+    selItem = null; selIsland = id; ringMesh.visible = false;
+    flyTo(isl.x, GROUND, isl.z, narrow() ? 28 : 21);
+    refresh();
+  }
+  function clearSel() { selItem = null; selIsland = null; ringMesh.visible = false; refresh(); }
+
+  function toggleDone(id) {
+    saved.done[id] = !saved.done[id]; if (!saved.done[id]) delete saved.done[id];
+    persist();
+    var b = buildings[id]; if (b) { b.flag.visible = !!saved.done[id]; b.pop = 0.3; }
+    refresh();
+  }
+  function removeItem(id) {
+    var b = buildings[id]; if (!b) return;
+    var isl = b.isl;
+    isl.items = isl.items.filter(function (it) { return it.id !== id; });
+    saved.custom = saved.custom.filter(function (c) { return c.id !== id; });
+    delete saved.done[id]; persist();
+    layoutIsland(isl); buildLinks(); clearSel(); applySearch();
+  }
+
+  function applySearch() {
+    var q = query.trim().toLowerCase(); matched = {};
+    var count = 0;
+    if (q) islands.forEach(function (isl) {
+      isl.items.forEach(function (it) {
+        var hay = (it.t + ' ' + it.n + ' ' + it.w + ' ' + isl.name).toLowerCase();
+        if (hay.indexOf(q) !== -1) { matched[it.id] = true; count++; }
+      });
+    });
+    $('#qmsg').textContent = q ? (count ? '找到 ' + count + ' 項，已放大顯示' : '沒有符合的瑣事') : '';
+  }
+  $('#q').addEventListener('input', function (e) { query = e.target.value; applySearch(); });
+
+  /* ---------- 點擊與懸停 ---------- */
+  var raycaster = new THREE.Raycaster(), ndc = new THREE.Vector2(), down = null;
+  function pick(e) {
+    var r = renderer.domElement.getBoundingClientRect();
+    ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    var hits = raycaster.intersectObjects(itemGroups, true);
+    for (var i = 0; i < hits.length; i++) {
+      var o = hits[i].object;
+      while (o && !(o.userData && o.userData.bid)) o = o.parent;
+      if (o) return o.userData.bid;
+    }
+    return null;
+  }
+  renderer.domElement.addEventListener('pointerdown', function (e) { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  renderer.domElement.addEventListener('pointerup', function (e) {
+    if (!down) return;
+    var moved = Math.hypot(e.clientX - down.x, e.clientY - down.y), dur = performance.now() - down.t; down = null;
+    if (moved > 6 || dur > 700) return;
+    var id = pick(e);
+    if (id) selectItem(id); else if (selItem || selIsland) clearSel();
+  });
+  renderer.domElement.addEventListener('pointermove', function (e) {
+    if (e.buttons) return;
+    var id = pick(e);
+    if (id && buildings[id]) {
+      var b = buildings[id]; tipEl.textContent = b.item.t;
+      tipObj.position.set(b.top.x, b.top.y + 0.5, b.top.z); tipObj.visible = true;
+      renderer.domElement.style.cursor = 'pointer';
+    } else { tipObj.visible = false; renderer.domElement.style.cursor = ''; }
+  });
+  renderer.domElement.addEventListener('pointerleave', function () { tipObj.visible = false; });
+
+  /* ---------- 工具列 ---------- */
+  var now = new Date(), timeMin = now.getHours() * 60 + now.getMinutes();
+  var auto = !reduce, timeEl = $('#time'), clockEl = $('#clock'), autoEl = $('#auto');
+  autoEl.checked = auto;
+  var lastMin = -1;
+  function syncClock() {
+    var m = Math.floor(timeMin) % 1440;
+    if (m === lastMin) return; lastMin = m;
+    clockEl.textContent = pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+    timeEl.value = String(m);
+  }
+  timeEl.addEventListener('input', function () { auto = false; autoEl.checked = false; timeMin = +timeEl.value; applyTime(timeMin / 60); syncClock(); });
+  autoEl.addEventListener('change', function () { auto = autoEl.checked; });
+  $('#showLinks').addEventListener('change', function (e) { linkGroup.visible = e.target.checked; });
+  $('#showTags').addEventListener('change', function (e) { appEl.classList.toggle('no-tags', !e.target.checked); });
+
+  var addForm = $('#addForm'), addToggle = $('#addToggle'), addMsg = $('#addMsg'), newIsland = $('#newIsland');
+  islands.forEach(function (isl) { newIsland.append(el('option', { value: isl.id, text: isl.name })); });
+  addToggle.addEventListener('click', function () {
+    var open = addForm.hidden; addForm.hidden = !open;
+    addToggle.setAttribute('aria-expanded', String(open));
+    if (open) $('#newText').focus();
+  });
+  addForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var text = $('#newText').value.trim(), isl = islandOf(newIsland.value);
+    if (!text) { addMsg.textContent = '請先輸入一件瑣事'; return; }
+    if (isl.items.length >= MAX_ITEMS) { addMsg.textContent = isl.name + '已經放滿 ' + MAX_ITEMS + ' 棟，換一座島試試'; return; }
+    var item = { id: 'c' + Date.now().toString(36) + Math.floor(Math.random() * 1000), t: text.slice(0, 12), n: '自己加的瑣事', w: '', custom: true };
+    isl.items.push(item);
+    saved.custom.push({ id: item.id, island: isl.id, t: item.t }); persist();
+    layoutIsland(isl); buildLinks(); applySearch();
+    $('#newText').value = ''; addMsg.textContent = '已放到' + isl.name;
+    selectItem(item.id);
+  });
+
+  /* ---------- 迴圈 ---------- */
+  var clock = new THREE.Clock();
+  applyTime(timeMin / 60); syncClock(); buildLinks(); refresh(); applySearch();
+  if (reduce) overview();
+
+  function frame() {
+    requestAnimationFrame(frame);
+    var dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+    if (auto && !reduce) { timeMin = (timeMin + dt * 15) % 1440; applyTime(timeMin / 60); syncClock(); }
+    updateFly(dt);
+    controls.update();
+    var tg = controls.target, rr = Math.hypot(tg.x, tg.z);
+    if (rr > 24) { var k = 24 / rr; tg.x *= k; tg.z *= k; }
+
+    var hasQ = !!query.trim();
+    islands.forEach(function (isl) {
+      isl.items.forEach(function (it) {
+        var b = buildings[it.id]; if (!b) return;
+        var isSel = selItem === it.id, isMatch = !!matched[it.id];
+        var ts = isSel ? 1.12 : isMatch ? 1.18 : hasQ ? 0.84 : 1;
+        var th = (isMatch ? 0.32 : 0) + (isSel ? 0.22 : 0);
+        b.scale += (ts - b.scale) * Math.min(1, dt * 8);
+        b.hl += (th - b.hl) * Math.min(1, dt * 8);
+        b.pop = Math.max(0, b.pop - dt * 0.9);
+        b.group.scale.setScalar(b.scale + Math.sin(b.pop * 12) * b.pop * 0.4);
+        b.bodyMat.emissiveIntensity = b.roofMat.emissiveIntensity = b.hl;
+        b.group.position.y = GROUND + (isSel && !reduce ? Math.abs(Math.sin(t * 3)) * 0.12 : 0);
+      });
+    });
+    if (ringMesh.visible && !reduce) { var s = 1 + Math.sin(t * 4) * 0.06; ringMesh.scale.set(s, s, s); }
+
+    if (!reduce) links.forEach(function (l) {
+      l.t = (l.t + dt * 0.22) % 1;
+      l.dot.position.copy(l.curve.getPoint(l.t));
+    });
+    updateWalker(dt, t);
+    if (!reduce) clouds.forEach(function (c) { c.position.x += c.userData.speed * dt; if (c.position.x > 100) c.position.x = -100; });
+    M.foam.opacity = reduce ? 0.55 : 0.5 + Math.sin(t * 1.2) * 0.08;
+
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+  }
+  frame();
+})();
+</script>
